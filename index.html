@@ -763,6 +763,20 @@ document.getElementById('btn-calculate').addEventListener('click', ()=>{
   appState.ageLifespan = life;
   appState.monthly     = monthly;
 
+  // If user typed an email in the email input but didn't press the email-submit button,
+  // capture and save it automatically so the results can be emailed.
+  try{
+    const emailEl = document.getElementById('email-input');
+    if(emailEl){
+      const maybe = emailEl.value.trim();
+      if(maybe && validateEmail(maybe)){
+        appState.email = sanitize(maybe);
+        // silent save with a short toast so user knows it's stored
+        showToast('บันทึก Email ให้เรียบร้อย — จะส่งผลลัพธ์ให้โดยอัตโนมัติ', 2000);
+      }
+    }
+  }catch(e){/* ignore */}
+
   // ===== FORMULA =====
   // A = (ageLifespan - ageRetire) × monthly × 12
   const A = (life - retire) * monthly * 12;
