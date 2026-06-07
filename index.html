@@ -431,7 +431,7 @@
 
     <button class="btn btn-primary" id="btn-next-main">ถัดไป →</button>
     <div class="divider">หรือ</div>
-    <button class="btn btn-gold" id="btn-go-email">📧 ส่งผลลัพธ์ไปยัง Email</button>
+    <button class="btn btn-gold" id="btn-go-email">ส่งผลลัพธ์ไปยัง Email</button>
   </div>
 </div>
 
@@ -483,12 +483,12 @@
     </div>
 
     <div class="field" id="field-monthly">
-      <label>เงินที่ต้องการใช้ต่อเดือน (บาท)</label>
+      <label>เงินที่ต้องการใช้ต่อเดือนหลังเกษียณ (บาท)</label>
       <input type="number" id="monthly-expense" placeholder="เช่น 30000" min="1000" autocomplete="off">
       <span class="error-msg" id="err-monthly">กรุณากรอกจำนวนเงินที่ต้องการ (อย่างน้อย 1,000 บาท)</span>
     </div>
 
-    <button class="btn btn-primary" id="btn-calculate">🧮 คำนวณ</button>
+    <button class="btn btn-primary" id="btn-calculate">คำนวณ</button>
   </div>
 </div>
 
@@ -496,7 +496,7 @@
 <div class="page" id="page-result">
   <div class="card" style="max-width:520px">
     <div class="result-hero">
-      <div class="result-badge">✨ ผลการคำนวณ</div>
+      <div class="result-badge">ผลการคำนวณ</div>
       <div class="result-name" id="res-name">สวัสดี!</div>
       <div class="result-label" id="res-label">เงินเก็บที่ต้องมีตอนอายุ <strong id="res-retire-age">—</strong> ปี</div>
 
@@ -524,8 +524,8 @@
       <strong id="res-monthly-save">—</strong><span style="color:var(--gray-light);font-size:14px"> บาท/เดือน</span>
     </div>
 
-    <button class="btn btn-outline" id="btn-recalculate" style="margin-bottom:10px">🔄 คำนวณใหม่</button>
-    <button class="btn btn-primary" id="btn-share" style="margin-bottom:0">📤 แชร์ผลลัพธ์</button>
+    <button class="btn btn-outline" id="btn-recalculate" style="margin-bottom:10px">คำนวณใหม่</button>
+    <button class="btn btn-primary" id="btn-share" style="margin-bottom:0">แชร์ผลลัพธ์</button>
   </div>
 </div>
 
@@ -716,7 +716,7 @@ document.getElementById('email-input').addEventListener('input', ()=>setError('f
 /* ============ GO TO MAIN ============ */
 function goToMain(){
   const t = document.getElementById('main-title');
-  t.textContent = 'สวัสดี ' + appState.nickname + ' 👋';
+  t.textContent = ' Hi ' + appState.nickname;
   document.getElementById('main-subtitle').textContent = 'กรอกข้อมูลเพื่อคำนวณเงินเก็บที่ต้องการ';
   showPage('page-main');
 }
@@ -724,7 +724,7 @@ function goToMain(){
 /* ============ PAGE 3: CALCULATE ============ */
 document.getElementById('btn-calculate').addEventListener('click', ()=>{
   if(!rateLimit('calculate',10,30000)){
-    showToast('⚠️ กรุณารอสักครู่ก่อนคำนวณใหม่');
+    showToast('กรุณารอสักครู่ก่อนคำนวณใหม่');
     return;
   }
 
