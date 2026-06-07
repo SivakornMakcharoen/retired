@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="DENY">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline';">
+<meta name="referrer" content="no-referrer">
+<title>เกษียณสุข — เครื่องคำนวณเงินเกษียณ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green-light: #90EE90;
+    --gray-light: #D3D3D3;
+    --green-med: #3CB371;
+    --gold: #FFD700;
+    --alice: #F0F8FF;
+    --black: #000000;
+    --green-dark: #2a8a52;
+    --green-glow: rgba(60,179,113,0.3);
+    --gold-glow: rgba(255,215,0,0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: var(--black);
+    color: var(--alice);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  /* ===== CANVAS BACKGROUND ===== */
+  #bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ===== PAGES ===== */
+  .page {
+    display: none;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+  .page.active { display: flex; }
+
+  /* ===== CARD ===== */
+  .card {
+    background: linear-gradient(135deg, rgba(0,0,0,0.85) 0%, rgba(20,40,20,0.9) 100%);
+    border: 1px solid rgba(144,238,144,0.25);
+    border-radius: 24px;
+    padding: 48px 44px;
+    width: 100%;
+    max-width: 480px;
+    box-shadow:
+      0 0 60px rgba(60,179,113,0.15),
+      0 0 120px rgba(60,179,113,0.07),
+      inset 0 1px 0 rgba(144,238,144,0.1);
+    backdrop-filter: blur(20px);
+    animation: cardIn 0.6s cubic-bezier(0.22,1,0.36,1) both;
+  }
+
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(32px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ===== LOGO / BRAND ===== */
+  .brand {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .brand-icon {
+    width: 72px; height: 72px;
+    background: linear-gradient(135deg, var(--green-med), var(--gold));
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 14px;
+    font-size: 32px;
+    box-shadow: 0 8px 32px var(--green-glow), 0 0 0 1px rgba(255,215,0,0.2);
+    animation: iconPulse 3s ease-in-out infinite;
+  }
+  @keyframes iconPulse {
+    0%,100% { box-shadow: 0 8px 32px var(--green-glow), 0 0 0 1px rgba(255,215,0,0.2); }
+    50%      { box-shadow: 0 8px 48px rgba(60,179,113,0.5), 0 0 0 3px rgba(255,215,0,0.3); }
+  }
+  .brand h1 {
+    font-family: 'Prompt', sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--green-light), var(--gold));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
+  }
+  .brand p {
+    font-size: 13px;
+    color: var(--gray-light);
+    margin-top: 4px;
+    opacity: 0.7;
+  }
+
+  /* ===== INPUTS ===== */
+  .field {
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--green-light);
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  input[type="text"],
+  input[type="email"],
+  input[type="number"] {
+    width: 100%;
+    background: rgba(144,238,144,0.05);
+    border: 1px solid rgba(144,238,144,0.2);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--alice);
+    font-family: 'Sarabun', sans-serif;
+    font-size: 16px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    -webkit-appearance: none;
+  }
+  input:focus {
+    border-color: var(--green-med);
+    background: rgba(60,179,113,0.08);
+    box-shadow: 0 0 0 3px rgba(60,179,113,0.15);
+  }
+  input::placeholder { color: rgba(240,248,255,0.3); }
+
+  /* number spinners */
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { opacity: 0.4; }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'Prompt', sans-serif;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    letter-spacing: 0.3px;
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--green-med) 0%, #2ecc71 100%);
+    color: var(--black);
+    box-shadow: 0 8px 24px rgba(60,179,113,0.4);
+    margin-bottom: 14px;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(60,179,113,0.55);
+  }
+
+  .btn-gold {
+    background: linear-gradient(135deg, var(--gold) 0%, #f4a700 100%);
+    color: var(--black);
+    box-shadow: 0 8px 24px rgba(255,215,0,0.35);
+  }
+  .btn-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(255,215,0,0.5);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--gray-light);
+    border: 1px solid rgba(211,211,211,0.25);
+    font-size: 14px;
+    padding: 12px;
+  }
+  .btn-outline:hover {
+    border-color: var(--green-light);
+    color: var(--green-light);
+  }
+
+  .divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 20px 0;
+    color: rgba(240,248,255,0.25);
+    font-size: 12px;
+  }
+  .divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(144,238,144,0.15);
+  }
+
+  /* ===== RESULT PAGE ===== */
+  .result-hero {
+    text-align: center;
+    padding: 24px 0 32px;
+  }
+  .result-badge {
+    display: inline-block;
+    background: linear-gradient(135deg, rgba(60,179,113,0.15), rgba(255,215,0,0.1));
+    border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 100px;
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--gold);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+  .result-name {
+    font-family: 'Prompt', sans-serif;
+    font-size: 20px;
+    color: var(--green-light);
+    margin-bottom: 8px;
+  }
+  .result-label {
+    font-size: 14px;
+    color: var(--gray-light);
+    margin-bottom: 20px;
+    opacity: 0.8;
+  }
+  .result-amount {
+    font-family: 'Prompt', sans-serif;
+    font-size: 46px;
+    font-weight: 700;
+    background: linear-gradient(90deg, var(--gold), #ffe55b, var(--gold));
+    background-size: 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: shimmer 3s linear infinite;
+    line-height: 1.1;
+  }
+  @keyframes shimmer {
+    0%   { background-position: 0% }
+    100% { background-position: 200% }
+  }
+  .result-unit {
+    font-size: 16px;
+    color: var(--gray-light);
+    margin-top: 6px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 28px 0;
+  }
+  .stat-box {
+    background: rgba(144,238,144,0.05);
+    border: 1px solid rgba(144,238,144,0.15);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-value {
+    font-family: 'Prompt', sans-serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--green-light);
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--gray-light);
+    margin-top: 4px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .monthly-box {
+    background: linear-gradient(135deg, rgba(255,215,0,0.08), rgba(60,179,113,0.08));
+    border: 1px solid rgba(255,215,0,0.25);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .monthly-box p { font-size: 13px; color: var(--gray-light); margin-bottom: 6px; }
+  .monthly-box strong {
+    font-family: 'Prompt', sans-serif;
+    font-size: 24px;
+    color: var(--gold);
+  }
+
+  /* ===== PROGRESS BAR ANIMATION ===== */
+  .progress-wrap {
+    margin: 24px 0;
+    background: rgba(144,238,144,0.1);
+    border-radius: 999px;
+    height: 8px;
+    overflow: hidden;
+  }
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green-med), var(--gold));
+    border-radius: 999px;
+    width: 0%;
+    transition: width 1.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ===== EMAIL PAGE ===== */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--gray-light);
+    font-size: 13px;
+    cursor: pointer;
+    margin-bottom: 24px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    background: none;
+    border: none;
+    font-family: 'Sarabun', sans-serif;
+  }
+  .back-link:hover { opacity: 1; color: var(--green-light); }
+
+  /* ===== TOAST ===== */
+  #toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--green-dark);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 100px;
+    font-size: 14px;
+    z-index: 999;
+    transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.4s;
+    opacity: 0;
+    white-space: nowrap;
+  }
+  #toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  /* ===== COINS ANIMATION ===== */
+  .coin {
+    position: fixed;
+    font-size: 22px;
+    pointer-events: none;
+    z-index: 0;
+    animation: coinFloat linear infinite;
+    opacity: 0.12;
+  }
+  @keyframes coinFloat {
+    0%   { transform: translateY(110vh) rotate(0deg); opacity: 0; }
+    10%  { opacity: 0.15; }
+    90%  { opacity: 0.15; }
+    100% { transform: translateY(-10vh) rotate(360deg); opacity: 0; }
+  }
+
+  /* ===== ERROR ===== */
+  .error-msg {
+    font-size: 12px;
+    color: #ff7979;
+    margin-top: 6px;
+    display: none;
+  }
+  .field.has-error input { border-color: #ff7979; }
+  .field.has-error .error-msg { display: block; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 520px) {
+    .card { padding: 36px 24px; }
+    .result-amount { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div id="toast"></div>
+
+<!-- Floating coins -->
+<script>
+  const COINS = ['💰','💵','💴','🪙','📈','💹','🏦'];
+  for(let i=0;i<14;i++){
+    const c=document.createElement('div');
+    c.className='coin';
+    c.textContent=COINS[Math.floor(Math.random()*COINS.length)];
+    c.style.left=Math.random()*100+'vw';
+    c.style.animationDuration=(12+Math.random()*18)+'s';
+    c.style.animationDelay=(-Math.random()*20)+'s';
+    c.style.fontSize=(16+Math.random()*16)+'px';
+    document.body.appendChild(c);
+  }
+</script>
+
+<!-- ==================== PAGE 1: WELCOME ==================== -->
+<div class="page active" id="page-welcome">
+  <div class="card">
+    <div class="brand">
+      <div class="brand-icon">🌿</div>
+      <h1>เกษียณสุข</h1>
+      <p>วางแผนการเงินเพื่ออนาคตที่มั่นคง</p>
+    </div>
+
+    <div class="field" id="field-nickname">
+      <label>ชื่อเล่นของคุณ</label>
+      <input type="text" id="nickname" placeholder="กรอกชื่อเล่น..." maxlength="50" autocomplete="off" spellcheck="false">
+      <span class="error-msg" id="err-nickname">กรุณากรอกชื่อเล่นของคุณ</span>
+    </div>
+
+    <button class="btn btn-primary" id="btn-next-main">ถัดไป →</button>
+    <div class="divider">หรือ</div>
+    <button class="btn btn-gold" id="btn-go-email">📧 ส่งผลลัพธ์ไปยัง Email</button>
+  </div>
+</div>
+
+<!-- ==================== PAGE 2: EMAIL ==================== -->
+<div class="page" id="page-email">
+  <div class="card">
+    <button class="back-link" id="btn-back-from-email">← ย้อนกลับ</button>
+    <div class="brand">
+      <div class="brand-icon" style="background:linear-gradient(135deg,#FFD700,#f4a700)">📧</div>
+      <h1>ส่งผลลัพธ์ทาง Email</h1>
+      <p>กรอก Email เพื่อรับผลการคำนวณ</p>
+    </div>
+
+    <div class="field" id="field-email">
+      <label>Email Address</label>
+      <input type="email" id="email-input" placeholder="example@email.com" maxlength="100" autocomplete="email">
+      <span class="error-msg" id="err-email">กรุณากรอก Email ที่ถูกต้อง</span>
+    </div>
+
+    <button class="btn btn-gold" id="btn-submit-email">ยืนยันและไปหน้าคำนวณ →</button>
+  </div>
+</div>
+
+<!-- ==================== PAGE 3: MAIN FORM ==================== -->
+<div class="page" id="page-main">
+  <div class="card">
+    <div class="brand">
+      <div class="brand-icon">📊</div>
+      <h1 id="main-title">วางแผนเกษียณ</h1>
+      <p id="main-subtitle">กรอกข้อมูลเพื่อคำนวณเงินเก็บที่ต้องการ</p>
+    </div>
+
+    <div class="field" id="field-age">
+      <label>อายุปัจจุบัน (ปี)</label>
+      <input type="number" id="age-current" placeholder="เช่น 30" min="15" max="80" autocomplete="off">
+      <span class="error-msg" id="err-age">กรุณากรอกอายุปัจจุบัน (15–80 ปี)</span>
+    </div>
+
+    <div class="field" id="field-retire">
+      <label>อายุที่อยากเกษียณ (ปี)</label>
+      <input type="number" id="age-retire" placeholder="เช่น 55" min="30" max="90" autocomplete="off">
+      <span class="error-msg" id="err-retire">กรุณากรอกอายุเกษียณที่มากกว่าอายุปัจจุบัน</span>
+    </div>
+
+    <div class="field" id="field-lifespan">
+      <label>อายุขัยของคุณ (ปี)</label>
+      <input type="number" id="age-lifespan" placeholder="เช่น 80" min="50" max="120" autocomplete="off">
+      <span class="error-msg" id="err-lifespan">กรุณากรอกอายุขัยที่มากกว่าอายุเกษียณ</span>
+    </div>
+
+    <div class="field" id="field-monthly">
+      <label>เงินที่ต้องการใช้ต่อเดือน (บาท)</label>
+      <input type="number" id="monthly-expense" placeholder="เช่น 30000" min="1000" autocomplete="off">
+      <span class="error-msg" id="err-monthly">กรุณากรอกจำนวนเงินที่ต้องการ (อย่างน้อย 1,000 บาท)</span>
+    </div>
+
+    <button class="btn btn-primary" id="btn-calculate">🧮 คำนวณ</button>
+  </div>
+</div>
+
+<!-- ==================== PAGE 4: RESULT ==================== -->
+<div class="page" id="page-result">
+  <div class="card" style="max-width:520px">
+    <div class="result-hero">
+      <div class="result-badge">✨ ผลการคำนวณ</div>
+      <div class="result-name" id="res-name">สวัสดี!</div>
+      <div class="result-label" id="res-label">เงินเก็บที่ต้องมีตอนอายุ <strong id="res-retire-age">—</strong> ปี</div>
+
+      <div class="result-amount" id="res-total">—</div>
+      <div class="result-unit">บาท</div>
+
+      <div class="progress-wrap" style="margin:20px auto;max-width:300px">
+        <div class="progress-bar" id="progress-bar"></div>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-value" id="res-years-save">—</div>
+        <div class="stat-label">ปีที่ต้องเก็บ</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value" id="res-years-use">—</div>
+        <div class="stat-label">ปีที่จะใช้เงิน</div>
+      </div>
+    </div>
+
+    <div class="monthly-box">
+      <p>💡 ต้องเก็บเงินต่อเดือนประมาณ</p>
+      <strong id="res-monthly-save">—</strong><span style="color:var(--gray-light);font-size:14px"> บาท/เดือน</span>
+    </div>
+
+    <button class="btn btn-outline" id="btn-recalculate" style="margin-bottom:10px">🔄 คำนวณใหม่</button>
+    <button class="btn btn-primary" id="btn-share" style="margin-bottom:0">📤 แชร์ผลลัพธ์</button>
+  </div>
+</div>
+
+<!-- ==================== CANVAS BG ==================== -->
+<script>
+/* ---- Animated canvas: flowing money chart lines ---- */
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let W, H, lines = [];
+
+function resizeCanvas(){
+  W = canvas.width  = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+class Line {
+  constructor(){
+    this.reset();
+  }
+  reset(){
+    this.x = Math.random() * W;
+    this.y = H + 20;
+    this.len = 60 + Math.random()*120;
+    this.speed = 0.3 + Math.random()*0.7;
+    this.alpha = 0.03 + Math.random()*0.07;
+    this.color = Math.random() > 0.5 ? '#3CB371' : '#FFD700';
+    this.dx = (Math.random()-0.5)*0.8;
+    this.pts = [{x:this.x,y:this.y}];
+  }
+  update(){
+    this.y -= this.speed;
+    this.x += this.dx;
+    const last = this.pts[this.pts.length-1];
+    this.pts.push({x:this.x + (Math.random()-0.5)*3, y:this.y});
+    if(this.pts.length > this.len) this.pts.shift();
+    if(this.y < -40) this.reset();
+  }
+  draw(){
+    if(this.pts.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(this.pts[0].x, this.pts[0].y);
+    for(let i=1;i<this.pts.length;i++) ctx.lineTo(this.pts[i].x, this.pts[i].y);
+    ctx.strokeStyle = this.color;
+    ctx.globalAlpha = this.alpha;
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+}
+
+for(let i=0;i<28;i++) {
+  const l = new Line();
+  l.y = Math.random()*H;
+  lines.push(l);
+}
+
+function animBg(){
+  ctx.clearRect(0,0,W,H);
+  lines.forEach(l=>{ l.update(); l.draw(); });
+  requestAnimationFrame(animBg);
+}
+animBg();
+</script>
+
+<!-- ==================== APP LOGIC + SECURITY ==================== -->
+<script>
+'use strict';
+
+/* ---- Security helpers ---- */
+function sanitize(str){
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;')
+    .replace(/\//g,'&#x2F;')
+    .trim()
+    .slice(0,200);
+}
+
+function validateEmail(e){
+  // RFC 5322 simplified + no consecutive dots + length check
+  if(e.length > 254) return false;
+  return /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(e) &&
+         !/\.\./.test(e);
+}
+
+/* ---- Rate limiter (simple in-memory) ---- */
+const _rateMap = {};
+function rateLimit(key, maxCalls, windowMs){
+  const now = Date.now();
+  if(!_rateMap[key]) _rateMap[key] = [];
+  _rateMap[key] = _rateMap[key].filter(t => now-t < windowMs);
+  if(_rateMap[key].length >= maxCalls) return false;
+  _rateMap[key].push(now);
+  return true;
+}
+
+/* ---- State ---- */
+let appState = {
+  nickname: '',
+  email: '',
+  ageFrom: null,
+  ageRetire: null,
+  ageLifespan: null,
+  monthly: null,
+};
+
+/* ---- Page navigation ---- */
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el){
+    el.classList.add('active');
+    el.querySelector('.card').style.animation='none';
+    requestAnimationFrame(()=>{ el.querySelector('.card').style.animation=''; });
+  }
+  window.scrollTo(0,0);
+}
+
+/* ---- Toast ---- */
+function showToast(msg, dur=2800){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+/* ---- Field error ---- */
+function setError(fieldId, show){
+  const f = document.getElementById(fieldId);
+  if(show) f.classList.add('has-error');
+  else f.classList.remove('has-error');
+}
+
+/* ---- Format number ---- */
+function fmt(n){ return Math.round(n).toLocaleString('th-TH'); }
+
+/* ============ PAGE 1 ============ */
+document.getElementById('btn-next-main').addEventListener('click', ()=>{
+  const nick = document.getElementById('nickname').value.trim();
+  if(!nick){
+    setError('field-nickname', true);
+    return;
+  }
+  setError('field-nickname', false);
+  appState.nickname = sanitize(nick);
+  goToMain();
+});
+
+document.getElementById('btn-go-email').addEventListener('click', ()=>{
+  const nick = document.getElementById('nickname').value.trim();
+  if(!nick){
+    setError('field-nickname', true);
+    return;
+  }
+  setError('field-nickname', false);
+  appState.nickname = sanitize(nick);
+  showPage('page-email');
+});
+
+document.getElementById('nickname').addEventListener('input', ()=>setError('field-nickname',false));
+
+/* ============ PAGE 2: EMAIL ============ */
+document.getElementById('btn-back-from-email').addEventListener('click', ()=>showPage('page-welcome'));
+
+document.getElementById('btn-submit-email').addEventListener('click', ()=>{
+  if(!rateLimit('email-submit',5,60000)){
+    showToast('⚠️ ลองใหม่อีกครั้งใน 1 นาที');
+    return;
+  }
+  const email = document.getElementById('email-input').value.trim();
+  if(!validateEmail(email)){
+    setError('field-email', true);
+    return;
+  }
+  setError('field-email', false);
+  appState.email = sanitize(email);
+  showToast('✅ บันทึก Email เรียบร้อย!');
+  setTimeout(goToMain, 600);
+});
+
+document.getElementById('email-input').addEventListener('input', ()=>setError('field-email',false));
+
+/* ============ GO TO MAIN ============ */
+function goToMain(){
+  const t = document.getElementById('main-title');
+  t.textContent = 'สวัสดี ' + appState.nickname + ' 👋';
+  document.getElementById('main-subtitle').textContent = 'กรอกข้อมูลเพื่อคำนวณเงินเก็บที่ต้องการ';
+  showPage('page-main');
+}
+
+/* ============ PAGE 3: CALCULATE ============ */
+document.getElementById('btn-calculate').addEventListener('click', ()=>{
+  if(!rateLimit('calculate',10,30000)){
+    showToast('⚠️ กรุณารอสักครู่ก่อนคำนวณใหม่');
+    return;
+  }
+
+  let valid = true;
+
+  const cur     = parseInt(document.getElementById('age-current').value);
+  const retire  = parseInt(document.getElementById('age-retire').value);
+  const life    = parseInt(document.getElementById('age-lifespan').value);
+  const monthly = parseFloat(document.getElementById('monthly-expense').value);
+
+  // Validate current age
+  if(!cur || cur < 15 || cur > 80){
+    setError('field-age', true); valid=false;
+  } else setError('field-age', false);
+
+  // Validate retire age
+  if(!retire || retire <= cur || retire > 90){
+    setError('field-retire', true); valid=false;
+  } else setError('field-retire', false);
+
+  // Validate lifespan
+  if(!life || life <= retire || life > 120){
+    setError('field-lifespan', true); valid=false;
+  } else setError('field-lifespan', false);
+
+  // Validate monthly
+  if(!monthly || monthly < 1000){
+    setError('field-monthly', true); valid=false;
+  } else setError('field-monthly', false);
+
+  if(!valid) return;
+
+  // Store
+  appState.ageFrom     = cur;
+  appState.ageRetire   = retire;
+  appState.ageLifespan = life;
+  appState.monthly     = monthly;
+
+  // ===== FORMULA =====
+  // A = (ageLifespan - ageRetire) × monthly × 12
+  const A = (life - retire) * monthly * 12;
+  // monthly save needed = A / ((retire - cur) × 12)
+  const monthlySave = A / ((retire - cur) * 12);
+
+  showResult(A, monthlySave);
+});
+
+['age-current','age-retire','age-lifespan','monthly-expense'].forEach((id,i)=>{
+  const fields = ['field-age','field-retire','field-lifespan','field-monthly'];
+  document.getElementById(id).addEventListener('input', ()=>setError(fields[i],false));
+});
+
+/* ============ PAGE 4: RESULT ============ */
+function showResult(totalNeeded, monthlySave){
+  const r = appState;
+
+  document.getElementById('res-name').textContent = r.nickname + ' 🎉';
+  document.getElementById('res-retire-age').textContent = r.ageRetire;
+  document.getElementById('res-total').textContent = fmt(totalNeeded);
+  document.getElementById('res-years-save').textContent = (r.ageRetire - r.ageFrom) + ' ปี';
+  document.getElementById('res-years-use').textContent  = (r.ageLifespan - r.ageRetire) + ' ปี';
+  document.getElementById('res-monthly-save').textContent = fmt(monthlySave);
+
+  showPage('page-result');
+
+  // Progress bar animation
+  setTimeout(()=>{
+    const pct = Math.min(100, ((r.ageRetire - r.ageFrom) / (r.ageLifespan - r.ageFrom)) * 100);
+    document.getElementById('progress-bar').style.width = pct + '%';
+  }, 300);
+}
+
+/* ============ RECALCULATE ============ */
+document.getElementById('btn-recalculate').addEventListener('click', ()=>{
+  document.getElementById('progress-bar').style.width='0%';
+  showPage('page-main');
+});
+
+/* ============ SHARE ============ */
+document.getElementById('btn-share').addEventListener('click', ()=>{
+  const r = appState;
+  const total = document.getElementById('res-total').textContent;
+  const ms    = document.getElementById('res-monthly-save').textContent;
+  const text  = `💰 เกษียณสุข\nสวัสดี ${r.nickname}!\nต้องมีเงินเก็บตอนอายุ ${r.ageRetire} ปี: ${total} บาท\nต้องเก็บ/เดือน: ${ms} บาท\n\nคำนวณได้ที่ https://your-github.github.io/retirement-app/`;
+
+  if(navigator.share){
+    navigator.share({ title:'เกษียณสุข', text }).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text).then(()=>showToast('📋 คัดลอกข้อความแล้ว!')).catch(()=>showToast('แชร์: '+text.slice(0,60)+'...'));
+  }
+});
+
+/* ---- Disable right-click & devtools shortcut (basic deterrence) ---- */
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if(e.key==='F12' || (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) || (e.ctrlKey && e.key==='U')){
+    e.preventDefault();
+  }
+});
+</script>
+
+</body>
+</html>
