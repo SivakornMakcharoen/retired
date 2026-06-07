@@ -809,28 +809,75 @@ function showResult(totalNeeded, monthlySave){
 // Send results by email.
 // Tries EmailJS if configured (window.emailjs + global IDs), otherwise opens a mailto: draft.
 function sendResultsByEmail(email, subject, body){
-  try{
-    // If EmailJS is loaded and the developer configured SERVICE/TEMPLATE IDs on the page,
-    // use it to send without user interaction. To enable, set global vars: EMAILJS_SERVICE_ID and EMAILJS_TEMPLATE_ID
-    if(window.emailjs && typeof window.emailjs.send === 'function' && window.EMAILJS_SERVICE_ID && window.EMAILJS_TEMPLATE_ID){
-      emailjs.send(window.EMAILJS_SERVICE_ID, window.EMAILJS_TEMPLATE_ID, {
+  const serviceId = window.EMAILJS_SERVICE_ID || null;
+  const templateId = window.EMAILJS_TEMPLATE_ID || null;
+  const userId = window.EMAILJS_USER_ID || null; // optional public/user id for emailjs.init
+
+  // Helper that actually sends via EmailJS (assumes emailjs available)
+  const sendViaEmailJS = ()=>{
+    try{
+      if(userId && typeof emailjs.init === 'function') emailjs.init(userId);
+      const params = {
         to_email: email,
         subject: subject,
-        message: body
-      }).then(()=>{
-        showToast('✅ ส่งผลลัพธ์ไปยัง Email เรียบร้อย (EmailJS)');
-      }).catch(()=>{
-        // fallback to mail client if EmailJS fails
-        window.open('mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
-        showToast('เปิดโปรแกรมอีเมลเพื่อส่งอีเมล (fallback)');
+        message: body,
+        nickname: appState.nickname || ''
+      };
+      emailjs.send(serviceId, templateId, params).then(()=>{
+        showToast('✅ ส่งอีเมลเรียบร้อย (EmailJS)');
+      }).catch((err)=>{
+        console.error('EmailJS send error', err);
+        // fallback to mail client
+        const mailto = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+        window.open(mailto);
+        showToast('ไม่สามารถส่งอีเมลอัตโนมัติ — เปิดโปรแกรมอีเมลแทน');
+      });
+    }catch(e){
+      console.error(e);
+      const mailto = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      window.open(mailto);
+      showToast('ไม่สามารถส่งอีเมลอัตโนมัติ — เปิดโปรแกรมอีเมลแทน');
+    }
+  };
+
+  // If EmailJS is configured, try to load SDK (if needed) and send automatically.
+  if(serviceId && templateId){
+    if(window.emailjs && typeof window.emailjs.send === 'function'){
+      sendViaEmailJS();
+      return;
+    }
+
+    // Dynamically load EmailJS SDK then send
+    const sdkUrl = 'https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js';
+    const existing = document.querySelector('script[data-emailjs-sdk]');
+    if(existing){
+      existing.addEventListener('load', sendViaEmailJS);
+      existing.addEventListener('error', ()=>{
+        showToast('ไม่สามารถโหลด EmailJS SDK ได้');
+        const mailto = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+        window.open(mailto);
       });
       return;
     }
-  }catch(e){
-    // ignore and fallback
+
+    const s = document.createElement('script');
+    s.src = sdkUrl;
+    s.async = true;
+    s.setAttribute('data-emailjs-sdk','1');
+    s.onload = ()=>{
+      if(userId && window.emailjs && typeof window.emailjs.init === 'function') emailjs.init(userId);
+      sendViaEmailJS();
+    };
+    s.onerror = ()=>{
+      showToast('ไม่สามารถโหลด EmailJS SDK ได้');
+      const mailto = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      window.open(mailto);
+    };
+    document.head.appendChild(s);
+    return;
   }
 
-  // Fallback: open default mail client with prefilled subject/body.
+  // If EmailJS not configured, fallback to opening user's mail client.
   try{
     const mailto = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
     window.open(mailto);
