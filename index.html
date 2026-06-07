@@ -808,7 +808,7 @@ document.getElementById('btn-share').addEventListener('click', ()=>{
   const r = appState;
   const total = document.getElementById('res-total').textContent;
   const ms    = document.getElementById('res-monthly-save').textContent;
-  const text  = `💰 เกษียณสุข\nสวัสดี ${r.nickname}!\nต้องมีเงินเก็บตอนอายุ ${r.ageRetire} ปี: ${total} บาท\nต้องเก็บ/เดือน: ${ms} บาท\n\nคำนวณได้ที่ https://your-github.github.io/retirement-app/`;
+  const text  = `💰 เกษียณสุข\nสวัสดี ${r.nickname}!\nต้องมีเงินเก็บตอนอายุ ${r.ageRetire} ปี: ${total} บาท\nต้องเก็บ/เดือน: ${ms} บาท\n\nคำนวณได้ที่ https://SivakornMakcharoen.github.io/retired/`;
 
   if(navigator.share){
     navigator.share({ title:'เกษียณสุข', text }).catch(()=>{});
