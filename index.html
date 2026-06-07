@@ -795,6 +795,49 @@ function showResult(totalNeeded, monthlySave){
     const pct = Math.min(100, ((r.ageRetire - r.ageFrom) / (r.ageLifespan - r.ageFrom)) * 100);
     document.getElementById('progress-bar').style.width = pct + '%';
   }, 300);
+
+  // If user provided an email, attempt to send the results.
+  if(r.email){
+    const totalFmt = document.getElementById('res-total').textContent;
+    const monthlyFmt = document.getElementById('res-monthly-save').textContent;
+    const subject = `ผลการคำนวณเกษียณสุข — ${r.nickname}`;
+    const body = `สวัสดี ${r.nickname}\n\nผลการคำนวณเงินเกษียณ:\n- ต้องมีเงินเก็บตอนอายุ ${r.ageRetire} ปี: ${totalFmt} บาท\n- ต้องเก็บ/เดือน: ${monthlyFmt} บาท\n\nดูรายละเอียดเพิ่มเติมที่ ${location.origin + location.pathname}`;
+    sendResultsByEmail(r.email, subject, body);
+  }
+}
+
+// Send results by email.
+// Tries EmailJS if configured (window.emailjs + global IDs), otherwise opens a mailto: draft.
+function sendResultsByEmail(email, subject, body){
+  try{
+    // If EmailJS is loaded and the developer configured SERVICE/TEMPLATE IDs on the page,
+    // use it to send without user interaction. To enable, set global vars: EMAILJS_SERVICE_ID and EMAILJS_TEMPLATE_ID
+    if(window.emailjs && typeof window.emailjs.send === 'function' && window.EMAILJS_SERVICE_ID && window.EMAILJS_TEMPLATE_ID){
+      emailjs.send(window.EMAILJS_SERVICE_ID, window.EMAILJS_TEMPLATE_ID, {
+        to_email: email,
+        subject: subject,
+        message: body
+      }).then(()=>{
+        showToast('✅ ส่งผลลัพธ์ไปยัง Email เรียบร้อย (EmailJS)');
+      }).catch(()=>{
+        // fallback to mail client if EmailJS fails
+        window.open('mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body));
+        showToast('เปิดโปรแกรมอีเมลเพื่อส่งอีเมล (fallback)');
+      });
+      return;
+    }
+  }catch(e){
+    // ignore and fallback
+  }
+
+  // Fallback: open default mail client with prefilled subject/body.
+  try{
+    const mailto = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    window.open(mailto);
+    showToast('เปิดโปรแกรมอีเมลเพื่อส่งอีเมล');
+  }catch(e){
+    showToast('ไม่สามารถเปิดโปรแกรมอีเมลได้ — กรุณาลองคัดลอกผลลัพธ์ด้วยตนเอง');
+  }
 }
 
 /* ============ RECALCULATE ============ */
@@ -808,12 +851,12 @@ document.getElementById('btn-share').addEventListener('click', ()=>{
   const r = appState;
   const total = document.getElementById('res-total').textContent;
   const ms    = document.getElementById('res-monthly-save').textContent;
-  const text  = `💰 เกษียณสุข\nสวัสดี ${r.nickname}!\nต้องมีเงินเก็บตอนอายุ ${r.ageRetire} ปี: ${total} บาท\nต้องเก็บ/เดือน: ${ms} บาท\n\nคำนวณได้ที่ https://SivakornMakcharoen.github.io/retired/`;
+  const text  = `เกษียณสุข\nสวัสดี ${r.nickname}!\nต้องมีเงินเก็บตอนอายุ ${r.ageRetire} ปี: ${total} บาท\nต้องเก็บ/เดือน: ${ms} บาท\n\nคำนวณได้ที่ https://SivakornMakcharoen.github.io/retired/`;
 
   if(navigator.share){
     navigator.share({ title:'เกษียณสุข', text }).catch(()=>{});
   } else {
-    navigator.clipboard.writeText(text).then(()=>showToast('📋 คัดลอกข้อความแล้ว!')).catch(()=>showToast('แชร์: '+text.slice(0,60)+'...'));
+    navigator.clipboard.writeText(text).then(()=>showToast('คัดลอกข้อความแล้ว!')).catch(()=>showToast('แชร์: '+text.slice(0,60)+'...'));
   }
 });
 
